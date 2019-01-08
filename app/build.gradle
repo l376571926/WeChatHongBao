@@ -15,7 +15,7 @@ android {
         minSdkVersion 18
         targetSdkVersion 28
         versionCode 1
-        versionName "1.0.0-alpha-4"
+        versionName "1.0.0-alpha-5"
         signingConfig signingConfigs.config
     }
     buildTypes {
@@ -40,4 +40,5 @@ dependencies {
     //必须使用
     implementation 'com.lzy.net:okgo:3.0.4'
     implementation 'com.github.bumptech.glide:glide:4.8.0'
+    implementation 'cat.ereza:customactivityoncrash:2.2.0'
 }

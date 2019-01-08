@@ -1,22 +1,16 @@
 package group.tonight.hongbao;
 
 import android.accessibilityservice.AccessibilityService;
-import android.accessibilityservice.GestureDescription;
-import android.graphics.Path;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.DisplayMetrics;
-import android.util.Log;
+import android.text.TextUtils;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.socks.library.KLog;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class HongBaoAccessibilityService extends AccessibilityService {
-    private Handler mHandler = new Handler(Looper.getMainLooper());
-    private static final String TAG = HongBaoAccessibilityService.class.getSimpleName();
     //聊天列表
     private static final String LAYOUT_CHAT_LIST = "com.tencent.mm.ui.LauncherUI";
     //拆红包界面
@@ -24,116 +18,114 @@ public class HongBaoAccessibilityService extends AccessibilityService {
     //红包详情
     private static final String LAYOUT_RED_BAG_DETAIL = "com.tencent.mm.plugin.luckymoney.ui.LuckyMoneyDetailUI";
 
-    private static final String LAYOUT_UNKNOW = "com.tencent.mm.ui.base.p";
-
     private String mCurrentActivityName;
     private boolean mOpenningRedBag;
+    private List<AccessibilityNodeInfo> mAvailableNodeInfosList = new ArrayList<>();
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         int eventType = event.getEventType();
         CharSequence className = event.getClassName();
-        int itemCount = event.getItemCount();
-        if (className != null) {
-            if (className.toString().contains("com.tencent.mm")) {
-                KLog.e("onAccessibilityEvent: " + eventType + " " + className);
-                mCurrentActivityName = className.toString();
-            }
+        if (className != null && className.toString().contains("com.tencent.mm")) {
+            mCurrentActivityName = className.toString();
         }
+        KLog.e("eventType:" + eventType + " 当前窗口名称：" + mCurrentActivityName + " 红包是否正在打开：" + mOpenningRedBag);
 
-        boolean hasRedBag = hasRedBag();
-//        KLog.e("onAccessibilityEvent: 有红包--->" + hasRedBag);
+        AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
         switch (eventType) {
-            case AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED:
-//                KLog.e("onAccessibilityEvent: TYPE_WINDOW_STATE_CHANGED");
-
+            case AccessibilityEvent.TYPE_VIEW_CLICKED://1
+            case AccessibilityEvent.TYPE_VIEW_LONG_CLICKED://2
+            case AccessibilityEvent.TYPE_VIEW_SELECTED://4
+            case AccessibilityEvent.TYPE_VIEW_FOCUSED://8
+            case AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED://16
                 break;
-            case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED:
-//                KLog.e( "onAccessibilityEvent: TYPE_WINDOW_CONTENT_CHANGED");
-//                KLog.e("onAccessibilityEvent: 有红包--->" + hasRedBag);
-
-                if (mCurrentActivityName != null) {
-                    final AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
-                    switch (mCurrentActivityName) {
-                        case LAYOUT_CHAT_LIST:
-                            if (mOpenningRedBag) {
-                                return;
-                            }
-                            if (hasRedBag()) {
-                                List<AccessibilityNodeInfo> nodeInfosByViewId = rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/ao4");//点开红包弹窗
-                                if (!nodeInfosByViewId.isEmpty()) {
-                                    KLog.e("收到一个未拆的红包");
-                                    nodeInfosByViewId.get(nodeInfosByViewId.size() - 1).performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                                    mOpenningRedBag = true;
-                                }
-                            }
-                            break;
-                        case LAYOUT_OPEN_RED_BAG:
-                            for (final AccessibilityNodeInfo nodeInfo : rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/cv0")) {//拆开红包
-                                if (nodeInfo.isClickable() && nodeInfo.getClassName().equals("android.widget.Button")) {
-//                                    if (android.os.Build.VERSION.SDK_INT > 23) {
-//                                        Path path = new Path();
-//                                        DisplayMetrics metrics = getResources().getDisplayMetrics();
-//                                        float dpi = metrics.densityDpi;
-//                                        if (640 == dpi) { //1440
-//                                            path.moveTo(720, 1575);
-//                                        } else if (320 == dpi) {//720p
-//                                            path.moveTo(355, 780);
-//                                        } else if (480 == dpi) {//1080p
-//                                            path.moveTo(533, 1115);
-//                                        }
-//                                        GestureDescription.Builder builder = new GestureDescription.Builder();
-//                                        GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 450, 50)).build();
-//                                        dispatchGesture(gestureDescription, new GestureResultCallback() {
-//                                            @Override
-//                                            public void onCompleted(GestureDescription gestureDescription) {
-//                                                Log.d(TAG, "onCompleted");
-////                                                mMutex = false;
-//                                                super.onCompleted(gestureDescription);
-//                                            }
-//
-//                                            @Override
-//                                            public void onCancelled(GestureDescription gestureDescription) {
-//                                                Log.d(TAG, "onCancelled");
-////                                                mMutex = false;
-//                                                super.onCancelled(gestureDescription);
-//                                            }
-//                                        }, null);
-//
-//                                    } else {
-                                    mHandler.postDelayed(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            KLog.e("onAccessibilityEvent: 拆开红包");
-                                            nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                                        }
-                                    },500);
-//                                    }
-                                    break;
-                                }
-                            }
-                            break;
-                        case LAYOUT_RED_BAG_DETAIL:
+            case AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED://32
+                if (LAYOUT_CHAT_LIST.equals(mCurrentActivityName)) {
+                    KLog.e("微信首页打开");
+                    mOpenningRedBag = false;
+                } else if (LAYOUT_OPEN_RED_BAG.equals(mCurrentActivityName)) {
+                    KLog.e("红包弹窗打开");
+                    if (mAvailableNodeInfosList.isEmpty()) {
+                        if (closeOpenBagDialog()) {
                             mOpenningRedBag = false;
-                            for (AccessibilityNodeInfo nodeInfo : rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/k4")) {//返回
-                                if (nodeInfo.isClickable()) {
-                                    nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                                    break;
+                        }
+                    }
+                } else if (LAYOUT_RED_BAG_DETAIL.equals(mCurrentActivityName)) {
+                    KLog.e("红包详情打开");
+                    mOpenningRedBag = false;
+                }
+                break;
+            case AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED://64
+            case AccessibilityEvent.TYPE_VIEW_HOVER_ENTER://128
+            case AccessibilityEvent.TYPE_VIEW_HOVER_EXIT://256
+            case AccessibilityEvent.TYPE_TOUCH_EXPLORATION_GESTURE_START://512
+            case AccessibilityEvent.TYPE_TOUCH_EXPLORATION_GESTURE_END://1024
+                break;
+            case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED://2048
+                if (mCurrentActivityName != null) {
+                    if (LAYOUT_CHAT_LIST.equals(mCurrentActivityName)) {
+                        if (mOpenningRedBag) {
+                            return;
+                        }
+                        if (hasRedBag()) {
+                            List<AccessibilityNodeInfo> nodeInfosByViewId = rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/ao4");//点开红包弹窗
+                            if (!nodeInfosByViewId.isEmpty()) {
+                                mOpenningRedBag = true;
+                                KLog.e("当前窗口未拆的红包数量：" + mAvailableNodeInfosList.size());
+                                if (!mAvailableNodeInfosList.isEmpty()) {
+                                    mAvailableNodeInfosList.remove(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
                                 }
                             }
-                            break;
-                        default:
-                            break;
+                        }
+                    } else if (LAYOUT_OPEN_RED_BAG.equals(mCurrentActivityName)) {
+                        if (closeOpenBagDialog()) {
+                            return;
+                        }
+                        for (final AccessibilityNodeInfo nodeInfo : rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/cv0")) {//拆开红包
+                            if (nodeInfo.isClickable() && nodeInfo.getClassName().equals("android.widget.Button")) {
+                                KLog.e("onAccessibilityEvent: 拆开红包");
+                                nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                break;
+                            }
+                        }
+                    } else if (LAYOUT_RED_BAG_DETAIL.equals(mCurrentActivityName)) {
+                        // 红包详情左上角返回按钮
+                        for (AccessibilityNodeInfo nodeInfo : rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/k4")) {//返回
+                            if (nodeInfo.isClickable()) {
+                                //手动返回
+                                break;
+                            }
+                        }
                     }
                 }
                 break;
-            case AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED:
-//                KLog.e( "onAccessibilityEvent: TYPE_NOTIFICATION_STATE_CHANGED");
-                break;
+            case AccessibilityEvent.TYPE_VIEW_SCROLLED://4096
+            case AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED://8192
+            case AccessibilityEvent.TYPE_ANNOUNCEMENT://16384
+            case AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED://32768
+            case AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUS_CLEARED://65536
+            case AccessibilityEvent.TYPE_VIEW_TEXT_TRAVERSED_AT_MOVEMENT_GRANULARITY://131072
             default:
                 break;
         }
 
+    }
+
+    private boolean closeOpenBagDialog() {
+        AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
+        if (rootInActiveWindow == null) {
+            return true;
+        }
+        //android.widget.TextView
+//        List<AccessibilityNodeInfo> noBagNodeList = rootInActiveWindow.findAccessibilityNodeInfosByText("手慢了，红包派完了");
+        List<AccessibilityNodeInfo> noBagNodeList = rootInActiveWindow.findAccessibilityNodeInfosByText("看看大家的手气");
+        if (noBagNodeList.isEmpty()) {
+            KLog.e("红包未被拆开，自动拆开红包");
+            return false;
+        }
+        KLog.e("红包显示未拆，但实际被拆开了，自动关闭红包弹窗");
+        rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/cs9").get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        return true;
     }
 
     private boolean hasRedBag() {
@@ -143,14 +135,39 @@ public class HongBaoAccessibilityService extends AccessibilityService {
         }
         //每个聊天联系人item
         //红包布局，包含红包图标、恭喜发财、已被领完
+        //所有可点击的红包，包括已拆与未拆
         List<AccessibilityNodeInfo> nodeInfoList = rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/ao4");
-        if (!nodeInfoList.isEmpty()) {
-            AccessibilityNodeInfo nodeInfo = nodeInfoList.get(nodeInfoList.size() - 1);//最后一个item
-
-            List<AccessibilityNodeInfo> infoList = nodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/ape");//已被领完
-            return infoList.isEmpty();
+        //如果当前聊天窗口中没有红包消息，走这里
+        if (nodeInfoList.isEmpty()) {
+            KLog.e("当前聊天窗口中没有红包消息");
+            return false;
         }
-        return false;
+        //从最新消息往旧消息查找红包，查到未拆红包，立刻跳出循环
+        mAvailableNodeInfosList.clear();
+        for (int i = nodeInfoList.size() - 1; i >= 0; i--) {
+            AccessibilityNodeInfo nodeInfo = nodeInfoList.get(i);//所有可点击的红包结点
+            List<AccessibilityNodeInfo> infoList = nodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/ape");//看有没有“已被领完”结点的id存在
+            if (infoList != null) {
+                if (infoList.isEmpty()) {
+                    KLog.e("有红包未拆：" + i);
+                    if (nodeInfo.isClickable()) {
+                        mAvailableNodeInfosList.add(nodeInfo);
+                    } else {
+                        throw new IllegalStateException("红包结点不可点击");
+                    }
+                } else {
+                    if (TextUtils.equals(infoList.get(0).getText(), "已被领完")) {
+                        KLog.e("当前红包已被拆开了：" + i);
+                    }
+                }
+            }
+        }
+        if (mAvailableNodeInfosList.isEmpty()) {
+            KLog.e("窗口中所有红包均已被拆开");
+            return false;
+        }
+        KLog.e("窗口中有未领的红包");
+        return true;
     }
 
     @Override

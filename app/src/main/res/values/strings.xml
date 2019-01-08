@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">HongBao</string>
     <string name="file_provider_authorities">group.tonight.hongbao.FileProvider</string>
-    <string name="accessibility_service_config_description">抢红包插件描述：仅适配最新版本微信</string>
+    <string name="accessibility_service_config_description">抢红包插件描述：仅适配最新版本微信7.0.0</string>
 </resources>
