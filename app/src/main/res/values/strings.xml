@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">HongBao</string>
+    <string name="file_provider_authorities">group.tonight.hongbao.FileProvider</string>
+</resources>
