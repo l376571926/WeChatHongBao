@@ -5,3 +5,7 @@
 
 使用方法：
 在辅助功能中开启“HongBao”即可使用，注意，仅监听聊天内容，不监听微信首页与通知栏
+
+App下载链接二维码：
+
+![Image text](http://qr.liantu.com/api.php?text=https://fir.im/zr2t)
