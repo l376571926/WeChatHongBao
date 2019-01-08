@@ -3,4 +3,7 @@
     <item
         android:id="@+id/actioin_update"
         android:title="更新" />
+    <item
+        android:id="@+id/action_share"
+        android:title="分享" />
 </menu>

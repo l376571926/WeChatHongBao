@@ -16,17 +16,23 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
         android:layout_marginTop="32dp"
-        android:text="分享App" />
+        android:text="使用说明：" />
 
-    <ImageView
-        android:id="@+id/qr_code"
-        android:layout_width="200dp"
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
         android:layout_marginTop="8dp"
-        android:adjustViewBounds="true"
-        android:src="@mipmap/ic_launcher" />
+        android:text="点击上方开启按钮，然后在辅助功能中开启“HongBao”即可使用，注意，仅监听聊天窗口内容（包括：微信群，微信多人会话，微信好友），不监听微信首页与通知栏" />
 
+    <android.support.v4.widget.Space
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/version"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="当前版本：1.0.0" />
 </LinearLayout>

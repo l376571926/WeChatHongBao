@@ -14,13 +14,18 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.FileCallback;
 import com.lzy.okgo.callback.StringCallback;
@@ -39,20 +44,31 @@ import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
+    private TextView mVersiontTextView;
+    private String mVersionName;
+    private int mVersionCode;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mVersiontTextView = (TextView) findViewById(R.id.version);
         findViewById(R.id.setting).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
             }
         });
-        ImageView imageView = (ImageView) findViewById(R.id.qr_code);
-        Glide.with(imageView)
-                .load("http://qr.liantu.com/api.php?text=" + "https://fir.im/zr2t")
-                .into(imageView);
+
+        try {
+            PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            mVersionName = packageInfo.versionName;
+            mVersionCode = packageInfo.versionCode;
+            mVersiontTextView.setText("当前版本：" + mVersionName);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+            Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -63,7 +79,29 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.actioin_update) {
+        if (item.getItemId() == R.id.action_share) {
+            ImageView imageView = new ImageView(this);
+            imageView.setImageResource(R.mipmap.ic_launcher);
+            imageView.setAdjustViewBounds(true);
+            FrameLayout frameLayout = new FrameLayout(this);
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+            frameLayout.addView(imageView, params);
+            Glide.with(imageView)
+                    .load("http://qr.liantu.com/api.php?text=" + "https://fir.im/zr2t")
+                    .apply(new RequestOptions().placeholder(R.mipmap.ic_launcher).override(300, 300))
+                    .into(imageView);
+            new AlertDialog.Builder(this)
+                    .setIcon(R.mipmap.ic_launcher)
+                    .setTitle("下载")
+                    .setMessage("App下载二维码")
+                    .setView(frameLayout)
+                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+
+                        }
+                    }).show();
+        } else if (item.getItemId() == R.id.actioin_update) {
             OkGo.<String>get("https://download.fir.im/zr2t")
                     .execute(new StringCallback() {
                         @Override
@@ -106,11 +144,7 @@ public class MainActivity extends AppCompatActivity {
 
                                                     KLog.e(updateBean.toString());
 
-
-                                                    PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-                                                    String versionName = packageInfo.versionName;
-                                                    int versionCode = packageInfo.versionCode;
-                                                    if (versionName.equals(version) && versionCode == build) {
+                                                    if (mVersionName.equals(version) && mVersionCode == build) {
                                                         Toast.makeText(MainActivity.this, "已是最新版本", Toast.LENGTH_SHORT).show();
                                                         return;
                                                     }
@@ -138,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
                                                             .append(changelog);
 
                                                     new AlertDialog.Builder(MainActivity.this)
+                                                            .setIcon(R.mipmap.ic_launcher)
                                                             .setTitle("发现新版本")
                                                             .setMessage(builder.toString())
                                                             .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
@@ -186,8 +221,6 @@ public class MainActivity extends AppCompatActivity {
                                                 } catch (JSONException e) {
                                                     e.printStackTrace();
                                                     Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                                                } catch (PackageManager.NameNotFoundException e) {
-                                                    e.printStackTrace();
                                                 }
                                             }
                                         });
