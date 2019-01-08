@@ -1,8 +1,12 @@
 package group.tonight.hongbao;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.GestureDescription;
+import android.graphics.Path;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
@@ -67,8 +71,39 @@ public class HongBaoAccessibilityService extends AccessibilityService {
                         case LAYOUT_OPEN_RED_BAG:
                             for (AccessibilityNodeInfo nodeInfo : rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/cv0")) {//拆开红包
                                 if (nodeInfo.isClickable() && nodeInfo.getClassName().equals("android.widget.Button")) {
-                                    nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                                     KLog.e("onAccessibilityEvent: 点击拆开红包按钮");
+//                                    if (android.os.Build.VERSION.SDK_INT > 23) {
+//                                        Path path = new Path();
+//                                        DisplayMetrics metrics = getResources().getDisplayMetrics();
+//                                        float dpi = metrics.densityDpi;
+//                                        if (640 == dpi) { //1440
+//                                            path.moveTo(720, 1575);
+//                                        } else if (320 == dpi) {//720p
+//                                            path.moveTo(355, 780);
+//                                        } else if (480 == dpi) {//1080p
+//                                            path.moveTo(533, 1115);
+//                                        }
+//                                        GestureDescription.Builder builder = new GestureDescription.Builder();
+//                                        GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 450, 50)).build();
+//                                        dispatchGesture(gestureDescription, new GestureResultCallback() {
+//                                            @Override
+//                                            public void onCompleted(GestureDescription gestureDescription) {
+//                                                Log.d(TAG, "onCompleted");
+////                                                mMutex = false;
+//                                                super.onCompleted(gestureDescription);
+//                                            }
+//
+//                                            @Override
+//                                            public void onCancelled(GestureDescription gestureDescription) {
+//                                                Log.d(TAG, "onCancelled");
+////                                                mMutex = false;
+//                                                super.onCancelled(gestureDescription);
+//                                            }
+//                                        }, null);
+//
+//                                    } else {
+                                    nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+//                                    }
                                     break;
                                 }
                             }
