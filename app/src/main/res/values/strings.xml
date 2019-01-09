@@ -1,5 +1,17 @@
 <resources>
     <string name="app_name">HongBao</string>
     <string name="file_provider_authorities">group.tonight.hongbao.FileProvider</string>
-    <string name="accessibility_service_config_description">抢红包插件描述：仅适配最新版本微信7.0.0</string>
+    <string name="accessibility_service_config_description">
+        <b>抢红包插件描述：</b>
+        \n
+        \n仅适配最新版本微信7.0.0
+        \n锁屏状态下不可用
+        \n未锁屏时，微信处于前后，可自动抢红包
+        \n未锁屏时，微信处于后台，有通知栏消息权限，可自动抢红包
+    </string>
+    <string name="string_main_activity_text_1">
+        <b>使用说明：</b>
+        \n
+        \n点击上方开启按钮，然后在辅助功能中开启“HongBao”即可使用，注意，仅监听聊天窗口内容（包括：微信群，微信多人会话，微信好友），不监听微信首页与通知栏，仅适配最新版本微信
+    </string>
 </resources>

@@ -19,6 +19,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -40,6 +41,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.util.Arrays;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
@@ -47,12 +49,16 @@ public class MainActivity extends AppCompatActivity {
     private TextView mVersiontTextView;
     private String mVersionName;
     private int mVersionCode;
+    private CheckBox mStatusCheckBox;
+    private TextView mOpenButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mStatusCheckBox = (CheckBox) findViewById(R.id.status);
         mVersiontTextView = (TextView) findViewById(R.id.version);
+        mOpenButton = (TextView) findViewById(R.id.setting);
         findViewById(R.id.setting).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -68,6 +74,43 @@ public class MainActivity extends AppCompatActivity {
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
             Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        int accessibilityEnabled = 0;
+        try {
+            accessibilityEnabled = Settings.Secure.getInt(getApplicationContext().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED);
+        } catch (Settings.SettingNotFoundException e) {
+            e.printStackTrace();
+        }
+        boolean opened = false;
+        if (accessibilityEnabled == 1) {
+            //如果手机中开启了一些APP的辅助功能，settingValue的值为：APP1包名/APP1继承AccessibilityService类全名: APP2包名/APP2继承AccessibilityService类全名
+            //com.kingroot.kinguser/com.kingroot.common.utils.system.monitor.top.TopAppMonitorAccessibilityService:group.tonight.hongbao/group.tonight.hongbao.HongBaoAccessibilityService
+            String settingValue = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            KLog.e(settingValue);
+            String[] split = settingValue.split(":");
+            KLog.e(Arrays.toString(split));
+            for (String value : split) {
+                String[] pkgAndService = value.split("/");
+                String packageName = pkgAndService[0];
+                String serviceClassName = pkgAndService[1];
+                KLog.e("包名：" + packageName + "，服务名：" + serviceClassName);
+                if (packageName.equals(getPackageName())) {
+                    opened = true;
+                    break;
+                }
+            }
+        }
+        if (opened) {//服务已开启
+            mStatusCheckBox.setChecked(true);
+            mOpenButton.setText("已开启");
+        } else {//服务未开启
+            mStatusCheckBox.setChecked(false);
+            mOpenButton.setText("开启红包辅助");
         }
     }
 

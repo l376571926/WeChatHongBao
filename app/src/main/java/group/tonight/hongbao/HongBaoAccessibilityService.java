@@ -1,6 +1,9 @@
 package group.tonight.hongbao;
 
 import android.accessibilityservice.AccessibilityService;
+import android.app.Notification;
+import android.app.PendingIntent;
+import android.os.Parcelable;
 import android.text.TextUtils;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -79,7 +82,32 @@ public class HongBaoAccessibilityService extends AccessibilityService {
                 }
                 break;
             case AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED://64    通知栏状态改变
-
+                //模拟打开消息通知栏（锁屏状态下无法自动抢红包）
+                //https://blog.csdn.net/qq_24531461/article/details/53884538
+                //当微信位于后台时，通知栏来红包消息时，自动打开红包消息，并执行抢红包操作
+                List<CharSequence> textList = event.getText();
+                for (CharSequence charSequence : textList) {
+                    if (!charSequence.toString().contains("[微信红包]")) {
+                        continue;
+                    }
+                    Parcelable parcelableData = event.getParcelableData();
+                    if (parcelableData == null) {
+                        continue;
+                    }
+                    if (!(parcelableData instanceof Notification)) {
+                        continue;
+                    }
+                    Notification notification = (Notification) parcelableData;
+                    PendingIntent contentIntent = notification.contentIntent;
+                    try {
+                        //模拟点击通知栏消息
+                        contentIntent.send();
+                    } catch (PendingIntent.CanceledException e) {
+                        e.printStackTrace();
+                        KLog.e(e.getMessage());
+                    }
+                    break;
+                }
                 break;
             case AccessibilityEvent.TYPE_VIEW_HOVER_ENTER://128
             case AccessibilityEvent.TYPE_VIEW_HOVER_EXIT://256
