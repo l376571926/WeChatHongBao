@@ -3,6 +3,7 @@ package group.tonight.hongbao;
 import android.accessibilityservice.AccessibilityService;
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.graphics.Rect;
 import android.os.Parcelable;
 import android.text.TextUtils;
 import android.view.accessibility.AccessibilityEvent;
@@ -33,6 +34,20 @@ public class HongBaoAccessibilityService extends AccessibilityService {
     private String mCurrentActivityName;
     private boolean mOpenningRedBag;
     private List<AccessibilityNodeInfo> mAvailableNodeInfosList = new ArrayList<>();
+    private List<AccessibilityNodeInfo> mHistoryClickedNodeList = new ArrayList<>();
+    private int mScreenWidthPixels;
+    private int mScreenHeightPixels;
+    private int mHalfScreenWidth;
+
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        mScreenWidthPixels = getResources().getDisplayMetrics().widthPixels;
+        mScreenHeightPixels = getResources().getDisplayMetrics().heightPixels;
+        mHalfScreenWidth = ((int) (mScreenWidthPixels / 2.0f));
+        KLog.e("手机分辨率—>宽：" + mScreenWidthPixels + "，高：" + mScreenHeightPixels);
+        KLog.e("半屏宽：" + mHalfScreenWidth);
+    }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
@@ -149,7 +164,19 @@ public class HongBaoAccessibilityService extends AccessibilityService {
                                 mOpenningRedBag = true;
                                 KLog.e("当前窗口未拆的红包数量：" + mAvailableNodeInfosList.size());
                                 if (!mAvailableNodeInfosList.isEmpty()) {
-                                    mAvailableNodeInfosList.remove(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                    // TODO: 2019/1/9 0009 自己发3个红包，其中一个好友抢一个，自己抢一个，剩下一个，
+                                    // TODO: 2019/1/9 0009 红包消息中的红包还没领完，所以不会出现已领完，那这里抢完后回到消息窗口又会自动抢剩下的。。。
+                                    // TODO: 2019/1/9 0009 这里是个bug
+                                    // TODO: 2019/1/9 0009 也就是说自己发两个以上的红包自己抢会有bug
+                                    //不抢自己发的红包就可以简单解决自己抢自己红包反复弹窗的bug
+                                    KLog.e(mAvailableNodeInfosList.toString());
+                                    AccessibilityNodeInfo nodeInfo = mAvailableNodeInfosList.remove(0);
+                                    if (!mHistoryClickedNodeList.contains(nodeInfo)) {
+                                        mHistoryClickedNodeList.add(nodeInfo);
+                                        nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                    } else {
+                                        KLog.e("该多人红包已领取过：" + nodeInfo);
+                                    }
                                 }
                             }
                         }
@@ -178,6 +205,8 @@ public class HongBaoAccessibilityService extends AccessibilityService {
 
     }
 
+    private Rect mTempRect = new Rect();
+
     private boolean hasRedBag() {
         AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
         if (rootInActiveWindow == null) {
@@ -205,12 +234,29 @@ public class HongBaoAccessibilityService extends AccessibilityService {
         mAvailableNodeInfosList.clear();
         for (int i = redBagNodeList.size() - 1; i >= 0; i--) {
             AccessibilityNodeInfo nodeInfo = redBagNodeList.get(i);//所有可点击的红包结点
+            boolean isSelfRedBag = false;
+            if (nodeInfo.getParent() != null) {
+                List<AccessibilityNodeInfo> infoList = nodeInfo.getParent().findAccessibilityNodeInfosByViewId("com.tencent.mm:id/nj");//头像
+                if (infoList != null) {
+                    if (!infoList.isEmpty()) {
+                        infoList.get(0).getBoundsInScreen(mTempRect);
+                        System.out.println(mTempRect);
+                        if (mTempRect.left > mHalfScreenWidth) {
+                            isSelfRedBag = true;
+                        }
+                    }
+                }
+            }
             List<AccessibilityNodeInfo> infoList = nodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/ape");//看有没有“已被领完”结点的id存在
             if (infoList != null) {
                 if (infoList.isEmpty()) {
                     KLog.e("有红包未拆：" + i);
                     if (nodeInfo.isClickable()) {
-                        mAvailableNodeInfosList.add(nodeInfo);
+                        if (!isSelfRedBag) {//仅检测不是自己发的红包
+                            mAvailableNodeInfosList.add(nodeInfo);
+                        } else {
+                            KLog.e("自己发的红包需要手动抢，自动抢有问题，待解决");
+                        }
                     } else {
                         throw new IllegalStateException("红包结点不可点击");
                     }
